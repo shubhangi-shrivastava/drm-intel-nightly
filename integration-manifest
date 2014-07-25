@@ -1,0 +1,12 @@
+origin/drm-intel-next-queued 487777673e355ab9f0b7cac4ad1207be9d36156f
+	drm/i915/userptr: Keep spin_lock/unlock in the same block
+origin/drm-intel-fixes f4be89cecea437aaddd7700d05c6bdb5678041f7
+	drm/i915: Fix crash when failing to parse MIPI VBT
+drm-upstream/drm-next e05444be705b5c7c7f85d7722b6f97f3a6732d54
+	drm/i915: fix initial fbdev setup warnings
+drm-upstream/drm-fixes 1b2c4869d8247f9e202fa8a73777c34adc62d409
+	drm/radeon: fix cut and paste issue for hawaii.
+origin/topic/core-stuff 310679985328aa96c537162ff06da6e752e6eba7
+	drm: Fix race when checking for fb in the generic kms obj lookup
+sound-upstream/for-next 214eef76eb86ef66ddbd7a2b0f734b820843bf35
+	ALSA: hda - Make vendor quirks lowest prio for ALC2xx
