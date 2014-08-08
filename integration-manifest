@@ -1,0 +1,12 @@
+origin/drm-intel-next-queued 403bdd10c815029694046adf5ffde0577cbd2866
+	drm/i915: No busy-loop wait_for in the ring init code
+origin/drm-intel-fixes be71eabebaf9f142612d34d42292b454e984dcb5
+	Revert "drm/i915: Enable semaphores on BDW"
+drm-upstream/drm-next 7963e9db1b1f842fdc53309baa8714d38e9f5681
+	Revert "drm: drop redundant drm_file->is_master"
+drm-upstream/drm-fixes 1b2c4869d8247f9e202fa8a73777c34adc62d409
+	drm/radeon: fix cut and paste issue for hawaii.
+origin/topic/core-stuff 6ff8137e79551ce87d74bb1f8bd831c6b4dad023
+	drm: Docbook fixes
+origin/topic/vblank-rework 80b36f4386660ce59ee09e34f07c8a98857e2f38
+	arm: Use vblank_disable_and_save in drm_vblank_cleanup()
