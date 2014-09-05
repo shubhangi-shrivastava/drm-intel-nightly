@@ -1,0 +1,14 @@
+origin/drm-intel-next-queued 9c787942907face82da505c2c5493998b56cfc5a
+	drm/i915: Decouple the stuck pageflip on modeset
+origin/drm-intel-fixes 25fc92b99f65bec7d7c747c0305f048d7b19cc44
+	drm/i915: Fix EIO/wedged handling in gem fault handler
+drm-upstream/drm-next 58b21c22c66dd223d27405d54b47102a27bda0b7
+	drm/qxl: Fix crash in eviction from qxl_release_fence_buffer_objects
+drm-upstream/drm-fixes 68c78bd67bd6f868474ac75d98ea7d6ebf28d2e7
+	Merge branch 'linux-3.17' of git://anongit.freedesktop.org/git/nouveau/linux-2.6 into drm-fixes
+origin/topic/core-stuff 5c551b501aa8637e844ea85eaea10f4f75aff716
+	drm/i915/hdmi: Enable pipe pixel replication for SD interlaced modes
+origin/topic/vblank-rework 80b36f4386660ce59ee09e34f07c8a98857e2f38
+	arm: Use vblank_disable_and_save in drm_vblank_cleanup()
+sound-upstream/for-next d89c6c0c91af0344b52dd21ca48dd29821fee677
+	ALSA: hda - Add TLV_DB_SCALE_MUTE bit for relevant controls
