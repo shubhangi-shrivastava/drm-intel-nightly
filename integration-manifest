@@ -1,0 +1,14 @@
+origin/drm-intel-next-queued 5545dbbfb3bb7a5ab5ced991e08d1c312326e843
+	drm/i915: add comments on what stage a given PM handler is called
+origin/drm-intel-next-fixes 07c338ce98263a5af631b991dd8f96cff6ca2548
+	drm/i915: fix short vs. long hpd detection
+origin/drm-intel-fixes 03a3780b0c82183110dbea7c7037a61686685511
+	drm/i915: Fix GMBUSFREQ on vlv/chv
+drm-upstream/drm-next dfda0df3426483cf5fc7441f23f318edbabecb03
+	drm/mst: rework payload table allocation to conform better.
+drm-upstream/drm-fixes c0c3e735fa7bae29c6623511127fd021b2d6d849
+	drm/cirrus: bind also to qemu-xen-traditional
+origin/topic/core-stuff 5a1cbdb0fb6748a52a33f4ccd5d49486d7479fbb
+	gpu: drm: Fix warning caused by a parameter description in drm_crtc.c
+sound-upstream/for-next 49d776ffb50f2e428aafb6a6576e58e80f1e886c
+	ALSA: pcm: Avoid mmap warnings on x86
