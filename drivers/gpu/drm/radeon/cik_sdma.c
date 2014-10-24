@@ -489,13 +489,6 @@ int cik_sdma_resume(struct radeon_device *rdev)
 {
 	int r;
 
-	/* Reset dma */
-	WREG32(SRBM_SOFT_RESET, SOFT_RESET_SDMA | SOFT_RESET_SDMA1);
-	RREG32(SRBM_SOFT_RESET);
-	udelay(50);
-	WREG32(SRBM_SOFT_RESET, 0);
-	RREG32(SRBM_SOFT_RESET);
-
 	r = cik_sdma_load_microcode(rdev);
 	if (r)
 		return r;
@@ -571,7 +564,7 @@ struct radeon_fence *cik_copy_dma(struct radeon_device *rdev,
 		return ERR_PTR(r);
 	}
 
-	radeon_semaphore_sync_resv(sem, resv, false);
+	radeon_semaphore_sync_resv(rdev, sem, resv, false);
 	radeon_semaphore_sync_rings(rdev, sem, ring->idx);
 
 	for (i = 0; i < num_loops; i++) {

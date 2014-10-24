@@ -44,13 +44,6 @@
 #define R6XX_MAX_PIPES				8
 #define R6XX_MAX_PIPES_MASK			0xff
 
-/* PTE flags */
-#define PTE_VALID				(1 << 0)
-#define PTE_SYSTEM				(1 << 1)
-#define PTE_SNOOPED				(1 << 2)
-#define PTE_READABLE				(1 << 5)
-#define PTE_WRITEABLE				(1 << 6)
-
 /* tiling bits */
 #define     ARRAY_LINEAR_GENERAL              0x00000000
 #define     ARRAY_LINEAR_ALIGNED              0x00000001
@@ -933,6 +926,23 @@
 #define LINK_CNTL2                                        0x88 /* F0 */
 #       define TARGET_LINK_SPEED_MASK                     (0xf << 0)
 #       define SELECTABLE_DEEMPHASIS                      (1 << 6)
+
+/* Audio */
+#define AZ_HOT_PLUG_CONTROL               0x7300
+#       define AZ_FORCE_CODEC_WAKE        (1 << 0)
+#       define JACK_DETECTION_ENABLE      (1 << 4)
+#       define UNSOLICITED_RESPONSE_ENABLE (1 << 8)
+#       define CODEC_HOT_PLUG_ENABLE      (1 << 12)
+#       define AUDIO_ENABLED              (1 << 31)
+/* DCE3 adds */
+#       define PIN0_JACK_DETECTION_ENABLE (1 << 4)
+#       define PIN1_JACK_DETECTION_ENABLE (1 << 5)
+#       define PIN2_JACK_DETECTION_ENABLE (1 << 6)
+#       define PIN3_JACK_DETECTION_ENABLE (1 << 7)
+#       define PIN0_AUDIO_ENABLED         (1 << 24)
+#       define PIN1_AUDIO_ENABLED         (1 << 25)
+#       define PIN2_AUDIO_ENABLED         (1 << 26)
+#       define PIN3_AUDIO_ENABLED         (1 << 27)
 
 /* Audio clocks DCE 2.0/3.0 */
 #define AUDIO_DTO                         0x7340

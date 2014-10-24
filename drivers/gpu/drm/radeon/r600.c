@@ -1430,7 +1430,7 @@ int r600_vram_scratch_init(struct radeon_device *rdev)
 	if (rdev->vram_scratch.robj == NULL) {
 		r = radeon_bo_create(rdev, RADEON_GPU_PAGE_SIZE,
 				     PAGE_SIZE, true, RADEON_GEM_DOMAIN_VRAM,
-				     0, NULL, &rdev->vram_scratch.robj);
+				     0, NULL, NULL, &rdev->vram_scratch.robj);
 		if (r) {
 			return r;
 		}
@@ -2912,7 +2912,7 @@ struct radeon_fence *r600_copy_cpdma(struct radeon_device *rdev,
 		return ERR_PTR(r);
 	}
 
-	radeon_semaphore_sync_resv(sem, resv, false);
+	radeon_semaphore_sync_resv(rdev, sem, resv, false);
 	radeon_semaphore_sync_rings(rdev, sem, ring->idx);
 
 	radeon_ring_write(ring, PACKET3(PACKET3_SET_CONFIG_REG, 1));
@@ -3368,7 +3368,7 @@ int r600_ih_ring_alloc(struct radeon_device *rdev)
 		r = radeon_bo_create(rdev, rdev->ih.ring_size,
 				     PAGE_SIZE, true,
 				     RADEON_GEM_DOMAIN_GTT, 0,
-				     NULL, &rdev->ih.ring_obj);
+				     NULL, NULL, &rdev->ih.ring_obj);
 		if (r) {
 			DRM_ERROR("radeon: failed to create ih ring buffer (%d).\n", r);
 			return r;
@@ -3925,17 +3925,17 @@ static u32 r600_get_ih_wptr(struct radeon_device *rdev)
 		wptr = RREG32(IH_RB_WPTR);
 
 	if (wptr & RB_OVERFLOW) {
+		wptr &= ~RB_OVERFLOW;
 		/* When a ring buffer overflow happen start parsing interrupt
 		 * from the last not overwritten vector (wptr + 16). Hopefully
 		 * this should allow us to catchup.
 		 */
-		dev_warn(rdev->dev, "IH ring buffer overflow (0x%08X, %d, %d)\n",
-			wptr, rdev->ih.rptr, (wptr + 16) + rdev->ih.ptr_mask);
+		dev_warn(rdev->dev, "IH ring buffer overflow (0x%08X, 0x%08X, 0x%08X)\n",
+			 wptr, rdev->ih.rptr, (wptr + 16) & rdev->ih.ptr_mask);
 		rdev->ih.rptr = (wptr + 16) & rdev->ih.ptr_mask;
 		tmp = RREG32(IH_RB_CNTL);
 		tmp |= IH_WPTR_OVERFLOW_CLEAR;
 		WREG32(IH_RB_CNTL, tmp);
-		wptr &= ~RB_OVERFLOW;
 	}
 	return (wptr & rdev->ih.ptr_mask);
 }
@@ -4181,6 +4181,7 @@ restart_ih:
 		/* wptr/rptr are in bytes! */
 		rptr += 16;
 		rptr &= rdev->ih.ptr_mask;
+		WREG32(IH_RB_RPTR, rptr);
 	}
 	if (queue_hotplug)
 		schedule_work(&rdev->hotplug_work);
@@ -4189,7 +4190,6 @@ restart_ih:
 	if (queue_thermal && rdev->pm.dpm_enabled)
 		schedule_work(&rdev->pm.dpm.thermal.work);
 	rdev->ih.rptr = rptr;
-	WREG32(IH_RB_RPTR, rdev->ih.rptr);
 	atomic_set(&rdev->ih.lock, 0);
 
 	/* make sure wptr hasn't changed while processing */
