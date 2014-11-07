@@ -1,0 +1,16 @@
+origin/drm-intel-next-queued 0b5492d6b53251acab99b1906a328fac56e08be3
+	drm/i915: Add gen to the gpu hang ecode
+origin/drm-intel-next-fixes 07c338ce98263a5af631b991dd8f96cff6ca2548
+	drm/i915: fix short vs. long hpd detection
+origin/drm-intel-fixes dc54e76d12f2b9ee32f8f4bc7ade79dbc7e6e55c
+	drm/i915: Fix obj->map_and_fenceable across tiling changes
+drm-upstream/drm-next 041df3573d0ce74b7f2f505c4224c8ee9be14a7c
+	Merge tag 'drm-intel-next-2014-10-24' of git://anongit.freedesktop.org/drm-intel into drm-next
+drm-upstream/drm-fixes 66338feee458cb2b04e8f2b515b8d660e49ba29a
+	Merge branch 'exynos-drm-fixes' of git://git.kernel.org/pub/scm/linux/kernel/git/daeinki/drm-exynos into drm-fixes
+origin/topic/core-stuff babc94936b7a48f0411c85a63074c0e378b55761
+	drm/edid: add #defines and helpers for ELD
+origin/topic/atomic-helpers 321ebf04dc7ab5c54d658f93db0ffe35277664ab
+	drm/atomic: Refcounting for plane_state->fb
+sound-upstream/for-next 31584ed18c073176a7ad96ddbfd09765e21e813d
+	ALSA: snd_ctl_activate_id(): Fix index look-up
