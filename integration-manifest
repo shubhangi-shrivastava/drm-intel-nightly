@@ -1,0 +1,16 @@
+origin/drm-intel-next-queued 89a35ecdc6aa5a88165313ca5cfd52b8e8e7fbbd
+	drm/i915/g4x: fix g4x infoframe readout
+origin/drm-intel-next-fixes 07c338ce98263a5af631b991dd8f96cff6ca2548
+	drm/i915: fix short vs. long hpd detection
+origin/drm-intel-fixes cb4975b7c365f6d8e6d17cf4a24d846b3d27e6b7
+	drm/i915: Ignore SURFLIVE and flip counter when the GPU gets reset
+drm-upstream/drm-next ed1e8777a56f3523712506d608a29f57ed37b613
+	Merge branch 'drm-next-3.19' of git://people.freedesktop.org/~agd5f/linux into drm-next
+drm-upstream/drm-fixes a0fc608178a9b38a5f782331909fcc208b742a7b
+	Merge branch 'drm-fixes-3.18' of git://people.freedesktop.org/~agd5f/linux into drm-fixes
+origin/topic/core-stuff 2c17455638dfff26fe6aa57eb6017ed2941a9801
+	drm/atomic: Add missing ERR_PTR casting
+origin/topic/atomic-helpers 321ebf04dc7ab5c54d658f93db0ffe35277664ab
+	drm/atomic: Refcounting for plane_state->fb
+sound-upstream/for-next 0f32fd1900e6b972f289416dbd75e92772b630cb
+	ALSA: hda/realtek - Clean up mute/mic GPIO LED handling
