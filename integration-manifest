@@ -1,0 +1,16 @@
+origin/drm-intel-next-queued f3f32360b6d9e22ece894a4d49abdd2d9a82fe81
+	drm/i915/bdw: Add WaHdcDisableFetchWhenMasked
+origin/drm-intel-next-fixes 9cca30688043eb1b6569f794041dfeec218dffa5
+	drm/i915: Handle inaccurate time conversion issues
+origin/drm-intel-fixes b0616c5306b342ceca07044dbc4f917d95c4f825
+	drm/i915: Unlock panel even when LVDS is disabled
+drm-upstream/drm-next 7608867d0c4d9da30e9efe6a53ff4ee1e6c4990b
+	Merge tag 'drm-intel-next-fixes-2014-12-04' of git://anongit.freedesktop.org/drm-intel into drm-next
+drm-upstream/drm-fixes 3e3282c0a23d8eb9438dcf4ac908a5eb48c7038b
+	Merge tag 'drm-intel-fixes-2014-12-04' of git://anongit.freedesktop.org/drm-intel into drm-fixes
+origin/topic/core-stuff a0a0bde32a4668656cdffac677032a101c170c6b
+	drm: Fix memory leak at error path of drm_read()
+origin/topic/atomic-helpers 321ebf04dc7ab5c54d658f93db0ffe35277664ab
+	drm/atomic: Refcounting for plane_state->fb
+sound-upstream/for-next 5395103dcc709d87f08edaecb786fc37781f3b22
+	ALSA: ctxfi: Neaten get_daio_rsc
