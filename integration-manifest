@@ -1,0 +1,18 @@
+origin/drm-intel-next-queued 140fd38dc4962ae3694f81900b51c567df1b6d33
+	drm/i915: Hold runtime PM during plane commit
+origin/drm-intel-next-fixes 5d77d9c5e177d2182df5d9fd61ba986facb64415
+	drm/i915: add missing rpm ref to i915_gem_pwrite_ioctl
+origin/drm-intel-fixes b0616c5306b342ceca07044dbc4f917d95c4f825
+	drm/i915: Unlock panel even when LVDS is disabled
+drm-upstream/drm-next 4e0cd68115620bc3236ff4e58e4c073948629b41
+	drm: sti: fix module compilation issue
+drm-upstream/drm-fixes 3e3282c0a23d8eb9438dcf4ac908a5eb48c7038b
+	Merge tag 'drm-intel-fixes-2014-12-04' of git://anongit.freedesktop.org/drm-intel into drm-fixes
+origin/topic/core-stuff 6cadd306033e70b4edb136815807060e168cac67
+	drm/fb-helper: Propagate errors from initial config failure
+origin/topic/atomic-core 79651c2fd2a68dfde0170d6d5cf21dc82e292b48
+	drm: Ensure universal_planes is set for atomic
+origin/topic/atomic-helpers 321ebf04dc7ab5c54d658f93db0ffe35277664ab
+	drm/atomic: Refcounting for plane_state->fb
+sound-upstream/for-next d70a1b9893f820fdbcdffac408c909c50f2e6b43
+	ALSA: usb-audio: extend KEF X300A FU 10 tweak to Arcam rPAC
