@@ -1,0 +1,20 @@
+origin/drm-intel-next-queued 0cb09a97d85753a372390bfc04172d980d235f2c
+	drm/i915: Use pipe_config's cpu_transcoder for reading encoder hw state
+origin/drm-intel-next-fixes b7392d2247cfe6771f95d256374f1a8e6a6f48d6
+	Linux 3.19-rc2
+origin/drm-intel-fixes 6b96d705f3cf435b0b8835b12c9742513c77fed6
+	drm/i915: BDW Fix Halo PCI IDs marked as ULT.
+origin/topic/i915-hda-componentized fcf3aac5fc307f0cae429f5844ddc25761662858
+	drm/i915: remove unused power_well/get_cdclk_freq api
+drm-upstream/drm-next e410055331c2f474872b364dce3d4042418e892b
+	agp: change agp_free_page_array to use kvfree
+drm-upstream/drm-fixes a78b80f51e57273961c397b5e9e224860228b965
+	Merge tag 'drm-intel-fixes-2015-01-29' of git://anongit.freedesktop.org/drm-intel into drm-fixes
+origin/topic/core-stuff eb2ed66fe56f30c6ea841ac11681a2f51049b221
+	drm/irq: Don't disable vblank interrupts when already disabled
+origin/topic/atomic-core 9469244d869623e8b54d9f3d4d00737e377af273
+	drm/atomic: Fix potential use of state after free
+origin/topic/atomic-helpers 321ebf04dc7ab5c54d658f93db0ffe35277664ab
+	drm/atomic: Refcounting for plane_state->fb
+sound-upstream/for-next 6eb3db91f2b68cbbcc1b4256333dc683afb54a73
+	Merge branch 'topic/line6' into for-next
