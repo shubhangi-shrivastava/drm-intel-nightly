@@ -873,6 +873,52 @@ static int chv_init_workarounds(struct intel_engine_cs *ring)
 	return 0;
 }
 
+static int gen9_init_workarounds(struct intel_engine_cs *ring)
+{
+	struct drm_device *dev = ring->dev;
+	struct drm_i915_private *dev_priv = dev->dev_private;
+
+	/* WaDisablePartialInstShootdown:skl */
+	WA_SET_BIT_MASKED(GEN8_ROW_CHICKEN,
+			  PARTIAL_INSTRUCTION_SHOOTDOWN_DISABLE);
+
+	/* Syncing dependencies between camera and graphics */
+	WA_SET_BIT_MASKED(HALF_SLICE_CHICKEN3,
+			  GEN9_DISABLE_OCL_OOB_SUPPRESS_LOGIC);
+
+	if (INTEL_REVID(dev) == SKL_REVID_A0) {
+		/*
+		* WaDisableDgMirrorFixInHalfSliceChicken5:skl
+		* This is a pre-production w/a.
+		*/
+		I915_WRITE(GEN9_HALF_SLICE_CHICKEN5,
+			I915_READ(GEN9_HALF_SLICE_CHICKEN5) &
+			~GEN9_DG_MIRROR_FIX_ENABLE);
+	}
+
+	if (INTEL_REVID(dev) >= SKL_REVID_C0) {
+		/* WaEnableYV12BugFixInHalfSliceChicken7:skl */
+		WA_SET_BIT_MASKED(GEN9_HALF_SLICE_CHICKEN7,
+				  GEN9_ENABLE_YV12_BUGFIX);
+	}
+
+	if (INTEL_REVID(dev) <= SKL_REVID_D0) {
+		/*
+		 *Use Force Non-Coherent whenever executing a 3D context. This
+		 * is a workaround for a possible hang in the unlikely event
+		 * a TLB invalidation occurs during a PSD flush.
+		 */
+		/* WaForceEnableNonCoherent:skl */
+		WA_SET_BIT_MASKED(HDC_CHICKEN0,
+				  HDC_FORCE_NON_COHERENT);
+	}
+
+	/* Wa4x4STCOptimizationDisable:skl */
+	WA_SET_BIT_MASKED(CACHE_MODE_1, GEN8_4x4_STC_OPTIMIZATION_DISABLE);
+
+	return 0;
+}
+
 int init_workarounds_ring(struct intel_engine_cs *ring)
 {
 	struct drm_device *dev = ring->dev;
@@ -887,6 +933,9 @@ int init_workarounds_ring(struct intel_engine_cs *ring)
 
 	if (IS_CHERRYVIEW(dev))
 		return chv_init_workarounds(ring);
+
+	if (IS_GEN9(dev))
+		return gen9_init_workarounds(ring);
 
 	return 0;
 }
@@ -2597,18 +2646,12 @@ int intel_init_bsd_ring_buffer(struct drm_device *dev)
 }
 
 /**
- * Initialize the second BSD ring for Broadwell GT3.
- * It is noted that this only exists on Broadwell GT3.
+ * Initialize the second BSD ring (eg. Broadwell GT3, Skylake GT3)
  */
 int intel_init_bsd2_ring_buffer(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct intel_engine_cs *ring = &dev_priv->ring[VCS2];
-
-	if ((INTEL_INFO(dev)->gen != 8)) {
-		DRM_ERROR("No dual-BSD ring on non-BDW machine\n");
-		return -EINVAL;
-	}
 
 	ring->name = "bsd2 ring";
 	ring->id = VCS2;

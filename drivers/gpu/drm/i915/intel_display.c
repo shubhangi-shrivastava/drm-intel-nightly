@@ -2371,6 +2371,7 @@ intel_alloc_plane_obj(struct intel_crtc *crtc,
 	struct drm_device *dev = crtc->base.dev;
 	struct drm_i915_gem_object *obj = NULL;
 	struct drm_mode_fb_cmd2 mode_cmd = { 0 };
+	struct drm_framebuffer *fb = &plane_config->fb->base;
 	u32 base = plane_config->base;
 
 	if (plane_config->size == 0)
@@ -2383,16 +2384,16 @@ intel_alloc_plane_obj(struct intel_crtc *crtc,
 
 	obj->tiling_mode = plane_config->tiling;
 	if (obj->tiling_mode == I915_TILING_X)
-		obj->stride = crtc->base.primary->fb->pitches[0];
+		obj->stride = fb->pitches[0];
 
-	mode_cmd.pixel_format = crtc->base.primary->fb->pixel_format;
-	mode_cmd.width = crtc->base.primary->fb->width;
-	mode_cmd.height = crtc->base.primary->fb->height;
-	mode_cmd.pitches[0] = crtc->base.primary->fb->pitches[0];
+	mode_cmd.pixel_format = fb->pixel_format;
+	mode_cmd.width = fb->width;
+	mode_cmd.height = fb->height;
+	mode_cmd.pitches[0] = fb->pitches[0];
 
 	mutex_lock(&dev->struct_mutex);
 
-	if (intel_framebuffer_init(dev, to_intel_framebuffer(crtc->base.primary->fb),
+	if (intel_framebuffer_init(dev, to_intel_framebuffer(fb),
 				   &mode_cmd, obj)) {
 		DRM_DEBUG_KMS("intel fb init failed\n");
 		goto out_unref_obj;
@@ -2410,6 +2411,20 @@ out_unref_obj:
 	return false;
 }
 
+/* Update plane->state->fb to match plane->fb after driver-internal updates */
+static void
+update_state_fb(struct drm_plane *plane)
+{
+	if (plane->fb == plane->state->fb)
+		return;
+
+	if (plane->state->fb)
+		drm_framebuffer_unreference(plane->state->fb);
+	plane->state->fb = plane->fb;
+	if (plane->state->fb)
+		drm_framebuffer_reference(plane->state->fb);
+}
+
 static void
 intel_find_plane_obj(struct intel_crtc *intel_crtc,
 		     struct intel_initial_plane_config *plane_config)
@@ -2420,14 +2435,20 @@ intel_find_plane_obj(struct intel_crtc *intel_crtc,
 	struct intel_crtc *i;
 	struct drm_i915_gem_object *obj;
 
-	if (!intel_crtc->base.primary->fb)
+	if (!plane_config->fb)
 		return;
 
-	if (intel_alloc_plane_obj(intel_crtc, plane_config))
-		return;
+	if (intel_alloc_plane_obj(intel_crtc, plane_config)) {
+		struct drm_plane *primary = intel_crtc->base.primary;
 
-	kfree(intel_crtc->base.primary->fb);
-	intel_crtc->base.primary->fb = NULL;
+		primary->fb = &plane_config->fb->base;
+		primary->state->crtc = &intel_crtc->base;
+		update_state_fb(primary);
+
+		return;
+	}
+
+	kfree(plane_config->fb);
 
 	/*
 	 * Failed to alloc the obj, check to see if we should share
@@ -2447,15 +2468,20 @@ intel_find_plane_obj(struct intel_crtc *intel_crtc,
 			continue;
 
 		if (i915_gem_obj_ggtt_offset(obj) == plane_config->base) {
+			struct drm_plane *primary = intel_crtc->base.primary;
+
 			if (obj->tiling_mode != I915_TILING_NONE)
 				dev_priv->preserve_bios_swizzle = true;
 
 			drm_framebuffer_reference(c->primary->fb);
-			intel_crtc->base.primary->fb = c->primary->fb;
+			primary->fb = c->primary->fb;
+			primary->state->crtc = &intel_crtc->base;
+			update_state_fb(intel_crtc->base.primary);
 			obj->frontbuffer_bits |= INTEL_FRONTBUFFER_PRIMARY(intel_crtc->pipe);
 			break;
 		}
 	}
+
 }
 
 static void i9xx_update_primary_plane(struct drm_crtc *crtc,
@@ -6587,6 +6613,10 @@ i9xx_get_initial_plane_config(struct intel_crtc *crtc,
 	struct drm_framebuffer *fb;
 	struct intel_framebuffer *intel_fb;
 
+	val = I915_READ(DSPCNTR(plane));
+	if (!(val & DISPLAY_PLANE_ENABLE))
+		return;
+
 	intel_fb = kzalloc(sizeof(*intel_fb), GFP_KERNEL);
 	if (!intel_fb) {
 		DRM_DEBUG_KMS("failed to alloc fb\n");
@@ -6594,8 +6624,6 @@ i9xx_get_initial_plane_config(struct intel_crtc *crtc,
 	}
 
 	fb = &intel_fb->base;
-
-	val = I915_READ(DSPCNTR(plane));
 
 	if (INTEL_INFO(dev)->gen >= 4)
 		if (val & DISPPLANE_TILED)
@@ -6634,7 +6662,7 @@ i9xx_get_initial_plane_config(struct intel_crtc *crtc,
 		      fb->bits_per_pixel, base, fb->pitches[0],
 		      plane_config->size);
 
-	crtc->base.primary->fb = fb;
+	plane_config->fb = intel_fb;
 }
 
 static void chv_crtc_clock_get(struct intel_crtc *crtc,
@@ -7628,6 +7656,9 @@ skylake_get_initial_plane_config(struct intel_crtc *crtc,
 	fb = &intel_fb->base;
 
 	val = I915_READ(PLANE_CTL(pipe, 0));
+	if (!(val & PLANE_CTL_ENABLE))
+		goto error;
+
 	if (val & PLANE_CTL_TILED_MASK)
 		plane_config->tiling = I915_TILING_X;
 
@@ -7671,7 +7702,7 @@ skylake_get_initial_plane_config(struct intel_crtc *crtc,
 		      fb->bits_per_pixel, base, fb->pitches[0],
 		      plane_config->size);
 
-	crtc->base.primary->fb = fb;
+	plane_config->fb = intel_fb;
 	return;
 
 error:
@@ -7715,6 +7746,10 @@ ironlake_get_initial_plane_config(struct intel_crtc *crtc,
 	struct drm_framebuffer *fb;
 	struct intel_framebuffer *intel_fb;
 
+	val = I915_READ(DSPCNTR(pipe));
+	if (!(val & DISPLAY_PLANE_ENABLE))
+		return;
+
 	intel_fb = kzalloc(sizeof(*intel_fb), GFP_KERNEL);
 	if (!intel_fb) {
 		DRM_DEBUG_KMS("failed to alloc fb\n");
@@ -7722,8 +7757,6 @@ ironlake_get_initial_plane_config(struct intel_crtc *crtc,
 	}
 
 	fb = &intel_fb->base;
-
-	val = I915_READ(DSPCNTR(pipe));
 
 	if (INTEL_INFO(dev)->gen >= 4)
 		if (val & DISPPLANE_TILED)
@@ -7762,7 +7795,7 @@ ironlake_get_initial_plane_config(struct intel_crtc *crtc,
 		      fb->bits_per_pixel, base, fb->pitches[0],
 		      plane_config->size);
 
-	crtc->base.primary->fb = fb;
+	plane_config->fb = intel_fb;
 }
 
 static bool ironlake_get_pipe_config(struct intel_crtc *crtc,
@@ -9055,9 +9088,9 @@ static void intel_unpin_work_fn(struct work_struct *__work)
 	enum pipe pipe = to_intel_crtc(work->crtc)->pipe;
 
 	mutex_lock(&dev->struct_mutex);
-	intel_unpin_fb_obj(work->old_fb_obj);
+	intel_unpin_fb_obj(intel_fb_obj(work->old_fb));
 	drm_gem_object_unreference(&work->pending_flip_obj->base);
-	drm_gem_object_unreference(&work->old_fb_obj->base);
+	drm_framebuffer_unreference(work->old_fb);
 
 	intel_fbc_update(dev);
 
@@ -9760,7 +9793,7 @@ static int intel_crtc_page_flip(struct drm_crtc *crtc,
 
 	work->event = event;
 	work->crtc = crtc;
-	work->old_fb_obj = intel_fb_obj(old_fb);
+	work->old_fb = old_fb;
 	INIT_WORK(&work->work, intel_unpin_work_fn);
 
 	ret = drm_crtc_vblank_get(crtc);
@@ -9796,10 +9829,11 @@ static int intel_crtc_page_flip(struct drm_crtc *crtc,
 		goto cleanup;
 
 	/* Reference the objects for the scheduled work. */
-	drm_gem_object_reference(&work->old_fb_obj->base);
+	drm_framebuffer_reference(work->old_fb);
 	drm_gem_object_reference(&obj->base);
 
 	crtc->primary->fb = fb;
+	update_state_fb(crtc->primary);
 
 	work->pending_flip_obj = obj;
 
@@ -9811,7 +9845,7 @@ static int intel_crtc_page_flip(struct drm_crtc *crtc,
 
 	if (IS_VALLEYVIEW(dev)) {
 		ring = &dev_priv->ring[BCS];
-		if (obj->tiling_mode != work->old_fb_obj->tiling_mode)
+		if (obj->tiling_mode != intel_fb_obj(work->old_fb)->tiling_mode)
 			/* vlv: DISPLAY_FLIP fails to change tiling */
 			ring = NULL;
 	} else if (IS_IVYBRIDGE(dev) || IS_HASWELL(dev)) {
@@ -9852,7 +9886,7 @@ static int intel_crtc_page_flip(struct drm_crtc *crtc,
 	work->flip_queued_vblank = drm_vblank_count(dev, intel_crtc->pipe);
 	work->enable_stall_check = true;
 
-	i915_gem_track_fb(work->old_fb_obj, obj,
+	i915_gem_track_fb(intel_fb_obj(work->old_fb), obj,
 			  INTEL_FRONTBUFFER_PRIMARY(pipe));
 
 	intel_fbc_disable(dev);
@@ -9868,7 +9902,8 @@ cleanup_unpin:
 cleanup_pending:
 	atomic_dec(&intel_crtc->unpin_work_count);
 	crtc->primary->fb = old_fb;
-	drm_gem_object_unreference(&work->old_fb_obj->base);
+	update_state_fb(crtc->primary);
+	drm_framebuffer_unreference(work->old_fb);
 	drm_gem_object_unreference(&obj->base);
 	mutex_unlock(&dev->struct_mutex);
 
@@ -12069,8 +12104,8 @@ void intel_plane_destroy(struct drm_plane *plane)
 }
 
 const struct drm_plane_funcs intel_plane_funcs = {
-	.update_plane = drm_plane_helper_update,
-	.disable_plane = drm_plane_helper_disable,
+	.update_plane = drm_atomic_helper_update_plane,
+	.disable_plane = drm_atomic_helper_disable_plane,
 	.destroy = intel_plane_destroy,
 	.set_property = drm_atomic_helper_plane_set_property,
 	.atomic_get_property = intel_plane_atomic_get_property,
@@ -13702,6 +13737,7 @@ void intel_modeset_gem_init(struct drm_device *dev)
 				  to_intel_crtc(c)->pipe);
 			drm_framebuffer_unreference(c->primary->fb);
 			c->primary->fb = NULL;
+			update_state_fb(c->primary);
 		}
 	}
 	mutex_unlock(&dev->struct_mutex);

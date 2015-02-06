@@ -772,7 +772,7 @@ struct intel_context {
 };
 
 struct i915_fbc {
-	unsigned long size;
+	unsigned long uncompressed_size;
 	unsigned threshold;
 	unsigned int fb_id;
 	enum plane plane;
@@ -2339,6 +2339,7 @@ struct drm_i915_cmd_table {
 })
 #define INTEL_INFO(p) 	(&__I915__(p)->info)
 #define INTEL_DEVID(p)	(INTEL_INFO(p)->device_id)
+#define INTEL_REVID(p)	(__I915__(p)->dev->pdev->revision)
 
 #define IS_I830(dev)		(INTEL_DEVID(dev) == 0x3577)
 #define IS_845G(dev)		(INTEL_DEVID(dev) == 0x2562)
@@ -2385,6 +2386,11 @@ struct drm_i915_cmd_table {
 #define IS_HSW_ULX(dev)		(INTEL_DEVID(dev) == 0x0A0E || \
 				 INTEL_DEVID(dev) == 0x0A1E)
 #define IS_PRELIMINARY_HW(intel_info) ((intel_info)->is_preliminary)
+
+#define SKL_REVID_A0		(0x0)
+#define SKL_REVID_B0		(0x1)
+#define SKL_REVID_C0		(0x2)
+#define SKL_REVID_D0		(0x3)
 
 /*
  * The genX designation typically refers to the render engine, so render
@@ -3182,8 +3188,7 @@ extern void i915_redisable_vga(struct drm_device *dev);
 extern void i915_redisable_vga_power_on(struct drm_device *dev);
 extern bool ironlake_set_drps(struct drm_device *dev, u8 val);
 extern void intel_init_pch_refclk(struct drm_device *dev);
-extern void gen6_set_rps(struct drm_device *dev, u8 val);
-extern void valleyview_set_rps(struct drm_device *dev, u8 val);
+extern void intel_set_rps(struct drm_device *dev, u8 val);
 extern void intel_set_memory_cxsr(struct drm_i915_private *dev_priv,
 				  bool enable);
 extern void intel_detect_pch(struct drm_device *dev);
