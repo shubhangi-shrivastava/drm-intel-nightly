@@ -1,0 +1,18 @@
+drm-upstream/drm-fixes 7f551b1eee63dca6571fc44329b807aab7d5fc5c
+	drm/cirrus: Limit modes depending on bpp option
+origin/drm-intel-fixes e36f014edff70fc02b3d3d79cead1d58f289332e
+	Linux 3.19-rc7
+drm-upstream/drm-next 2f8997902e64951228385ca1cebb0d2f16f99a23
+	Merge tag 'drm-amdkfd-next-fixes-2015-02-03' of git://people.freedesktop.org/~gabbayo/linux into drm-next
+origin/drm-intel-next-fixes 460822b0b1a77db859b0320469799fa4dbe4d367
+	drm/i915: Prevent use-after-free in invalidate_range_start callback
+origin/drm-intel-next-queued c157e8637b6c032cc474f0ac1039d3371777c804
+	drm/i915/gen9: Implement WaForceEnableNonCoherent
+origin/topic/core-stuff eb2ed66fe56f30c6ea841ac11681a2f51049b221
+	drm/irq: Don't disable vblank interrupts when already disabled
+origin/topic/atomic-core 9469244d869623e8b54d9f3d4d00737e377af273
+	drm/atomic: Fix potential use of state after free
+sound-upstream/for-next 9b6ff3fb9644b962b39816c571e38ddc1412fea0
+	ALSA: line6: Get rid of unused variable in pod.c
+origin/topic/drm-misc 335f1a62c5a6334c4fc92c3c448d7648408d9b83
+	drm: Use static attribute groups for managing connector sysfs entries
