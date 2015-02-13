@@ -1,0 +1,18 @@
+drm-upstream/drm-fixes 7f551b1eee63dca6571fc44329b807aab7d5fc5c
+	drm/cirrus: Limit modes depending on bpp option
+origin/drm-intel-fixes bfa76d49576599a4b9f9b7a71f23d73d6dcff735
+	Linux 3.19
+drm-upstream/drm-next 96abd10ecc2e9ab5c8060697ce721683f387c64e
+	Merge branch 'drm-next-3.20' of git://people.freedesktop.org/~agd5f/linux into drm-next
+origin/drm-intel-next-fixes 96abd10ecc2e9ab5c8060697ce721683f387c64e
+	Merge branch 'drm-next-3.20' of git://people.freedesktop.org/~agd5f/linux into drm-next
+origin/drm-intel-next-queued cd5956c9136d80ca09faacf9622dc68426bec98c
+	drm/i915: Remove references to previously removed UMS config option
+origin/topic/core-stuff eb2ed66fe56f30c6ea841ac11681a2f51049b221
+	drm/irq: Don't disable vblank interrupts when already disabled
+origin/topic/atomic-core 9469244d869623e8b54d9f3d4d00737e377af273
+	drm/atomic: Fix potential use of state after free
+sound-upstream/for-next f0153c3d948c1764f6c920a0675d86fc1d75813e
+	ALSA: hdspm - Constrain periods to 2 on older cards
+origin/topic/drm-misc d7d0d22d3dd3b08e991ed337e2eb81138d4ce1e6
+	drm: Fix drm_crtc_vblank_get() documentation
