@@ -1,0 +1,18 @@
+drm-upstream/drm-fixes 21689a440bdc90650b7ee3803ec11cfabd21409e
+	Merge branch 'drm-atmel-hlcdc-fixes' of git://github.com/bbrezillon/linux-at91 into drm-fixes
+origin/drm-intel-fixes a6ddea78fa948f18f8ea4a5d982de04c65b352dd
+	drm/i915: Check for driver readyness before handling an underrun interrupt
+drm-upstream/drm-next 329414c4e7b7506fe3eab545b3fc9e44b7f28a10
+	Merge tag 'topic/drm-misc-2015-02-25' of git://anongit.freedesktop.org/drm-intel into drm-next
+origin/drm-intel-next-fixes 96abd10ecc2e9ab5c8060697ce721683f387c64e
+	Merge branch 'drm-next-3.20' of git://people.freedesktop.org/~agd5f/linux into drm-next
+origin/drm-intel-next-queued e8dec1dde016258af7c8a2ce9ddfb7243176a344
+	drm/i915: Clarify obj->map_and_fenceable
+origin/topic/core-stuff eb2ed66fe56f30c6ea841ac11681a2f51049b221
+	drm/irq: Don't disable vblank interrupts when already disabled
+origin/topic/atomic-core 9469244d869623e8b54d9f3d4d00737e377af273
+	drm/atomic: Fix potential use of state after free
+sound-upstream/for-next 9603cded0e2cef003a822985d84b5daff1c7232f
+	ALSA: cmipci: remove a stray space character
+origin/topic/drm-misc 756ed95dd717d0bab017124bde1fae7edd5e08f3
+	drm/dp: add DPCD definitions from eDP 1.4
