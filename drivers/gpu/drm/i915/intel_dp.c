@@ -4421,6 +4421,32 @@ go_again:
 	return -EINVAL;
 }
 
+static void
+intel_dp_check_link_status(struct intel_dp *intel_dp, bool force)
+{
+	struct intel_encoder *intel_encoder = &dp_to_dig_port(intel_dp)->base;
+	u8 link_status[DP_LINK_STATUS_SIZE];
+
+	if (!intel_dp_get_link_status(intel_dp, link_status)) {
+		DRM_ERROR("Failed to get link status\n");
+		return;
+	}
+
+	if (!intel_encoder->base.crtc)
+		return;
+
+	if (!to_intel_crtc(intel_encoder->base.crtc)->active)
+		return;
+
+	if ((!drm_dp_channel_eq_ok(link_status, intel_dp->lane_count)) ||
+			(force == true)) {
+		DRM_DEBUG_KMS("%s: channel EQ not ok, retraining\n",
+				intel_encoder->base.name);
+		intel_dp_start_link_train(intel_dp);
+		intel_dp_stop_link_train(intel_dp);
+	}
+}
+
 /*
  * According to DP spec
  * 5.1.2:
@@ -4430,7 +4456,7 @@ go_again:
  *  4. Check link status on receipt of hot-plug interrupt
  */
 static void
-intel_dp_check_link_status(struct intel_dp *intel_dp)
+intel_dp_short_pulse(struct intel_dp *intel_dp)
 {
 	struct drm_device *dev = intel_dp_to_dev(intel_dp);
 	struct intel_encoder *intel_encoder = &dp_to_dig_port(intel_dp)->base;
@@ -4469,12 +4495,9 @@ intel_dp_check_link_status(struct intel_dp *intel_dp)
 			DRM_DEBUG_DRIVER("CP or sink specific irq unhandled\n");
 	}
 
-	if (!drm_dp_channel_eq_ok(link_status, intel_dp->lane_count)) {
-		DRM_DEBUG_KMS("%s: channel EQ not ok, retraining\n",
-			      intel_encoder->base.name);
-		intel_dp_start_link_train(intel_dp);
-		intel_dp_stop_link_train(intel_dp);
-	}
+	drm_modeset_lock(&dev->mode_config.connection_mutex, NULL);
+	intel_dp_check_link_status(intel_dp, false);
+	drm_modeset_unlock(&dev->mode_config.connection_mutex);
 }
 
 /* XXX this is probably wrong for multiple downstream ports */
@@ -4785,8 +4808,8 @@ intel_dp_power_put(struct intel_dp *dp,
 	intel_display_power_put(to_i915(encoder->base.dev), power_domain);
 }
 
-static enum drm_connector_status
-intel_dp_detect(struct drm_connector *connector, bool force)
+static void
+intel_dp_long_pulse(struct drm_connector *connector)
 {
 	struct intel_dp *intel_dp = intel_attached_dp(connector);
 	struct intel_digital_port *intel_dig_port = dp_to_dig_port(intel_dp);
@@ -4797,16 +4820,6 @@ intel_dp_detect(struct drm_connector *connector, bool force)
 	bool ret;
 	u8 sink_irq_vector;
 
-	DRM_DEBUG_KMS("[CONNECTOR:%d:%s]\n",
-		      connector->base.id, connector->name);
-	intel_dp_unset_edid(intel_dp);
-
-	if (intel_dp->is_mst) {
-		/* MST devices are disconnected from a monitor POV */
-		if (intel_encoder->type != INTEL_OUTPUT_EDP)
-			intel_encoder->type = INTEL_OUTPUT_DISPLAYPORT;
-		return connector_status_disconnected;
-	}
 
 	power_domain = intel_dp_power_get(intel_dp);
 
@@ -4817,8 +4830,10 @@ intel_dp_detect(struct drm_connector *connector, bool force)
 		status = ironlake_dp_detect(intel_dp);
 	else
 		status = g4x_dp_detect(intel_dp);
-	if (status != connector_status_connected)
+	if (status != connector_status_connected) {
+		intel_dp_unset_edid(intel_dp);
 		goto out;
+	}
 
 	intel_dp_probe_oui(intel_dp);
 
@@ -4829,6 +4844,17 @@ intel_dp_detect(struct drm_connector *connector, bool force)
 		if (intel_encoder->type != INTEL_OUTPUT_EDP)
 			intel_encoder->type = INTEL_OUTPUT_DISPLAYPORT;
 		status = connector_status_disconnected;
+		goto out;
+	} else if (connector->status == connector_status_connected) {
+
+		/*
+		 * if display was connected already and is still connected
+		 * check links status, there has been known issues of
+		 * link loss triggerring long pulse!!!!
+		 */
+		drm_modeset_lock(&dev->mode_config.connection_mutex, NULL);
+		intel_dp_check_link_status(intel_dp, true);
+		drm_modeset_unlock(&dev->mode_config.connection_mutex);
 		goto out;
 	}
 
@@ -4854,7 +4880,34 @@ intel_dp_detect(struct drm_connector *connector, bool force)
 
 out:
 	intel_dp_power_put(intel_dp, power_domain);
-	return status;
+	return;
+}
+
+static enum drm_connector_status
+intel_dp_detect(struct drm_connector *connector, bool force)
+{
+	struct intel_dp *intel_dp = intel_attached_dp(connector);
+	struct intel_digital_port *intel_dig_port = dp_to_dig_port(intel_dp);
+	struct intel_encoder *intel_encoder = &intel_dig_port->base;
+	struct intel_connector *intel_connector = to_intel_connector(connector);
+
+	DRM_DEBUG_KMS("[CONNECTOR:%d:%s]\n",
+		      connector->base.id, connector->name);
+
+	if (intel_dp->is_mst) {
+		/* MST devices are disconnected from a monitor POV */
+		if (intel_encoder->type != INTEL_OUTPUT_EDP)
+			intel_encoder->type = INTEL_OUTPUT_DISPLAYPORT;
+		return connector_status_disconnected;
+	}
+
+	if (force)
+		intel_dp_long_pulse(intel_dp->attached_connector);
+
+	if (intel_connector->detect_edid)
+		return connector_status_connected;
+	else
+		return connector_status_disconnected;
 }
 
 static void
@@ -5179,21 +5232,9 @@ intel_dp_hpd_pulse(struct intel_digital_port *intel_dig_port, bool long_hpd)
 		/* indicate that we need to restart link training */
 		intel_dp->train_set_valid = false;
 
-		if (!intel_digital_port_connected(dev_priv, intel_dig_port))
-			goto mst_fail;
+		intel_dp_long_pulse(intel_dp->attached_connector);
+		goto put_power;
 
-		if (!intel_dp_get_dpcd(intel_dp)) {
-			goto mst_fail;
-		}
-
-		intel_dp_probe_oui(intel_dp);
-
-		if (!intel_dp_probe_mst(intel_dp)) {
-			drm_modeset_lock(&dev->mode_config.connection_mutex, NULL);
-			intel_dp_check_link_status(intel_dp);
-			drm_modeset_unlock(&dev->mode_config.connection_mutex);
-			goto mst_fail;
-		}
 	} else {
 		if (intel_dp->is_mst) {
 			if (intel_dp_check_mst_status(intel_dp) == -EINVAL)
@@ -5201,9 +5242,8 @@ intel_dp_hpd_pulse(struct intel_digital_port *intel_dig_port, bool long_hpd)
 		}
 
 		if (!intel_dp->is_mst) {
-			drm_modeset_lock(&dev->mode_config.connection_mutex, NULL);
-			intel_dp_check_link_status(intel_dp);
-			drm_modeset_unlock(&dev->mode_config.connection_mutex);
+			intel_dp_short_pulse(intel_dp);
+			goto put_power;
 		}
 	}
 
