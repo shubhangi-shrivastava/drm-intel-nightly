@@ -4437,22 +4437,36 @@ go_again:
  *  4. Check link status on receipt of hot-plug interrupt
  */
 static void
-intel_dp_check_link_status(struct intel_dp *intel_dp)
+intel_dp_check_link_status(struct intel_dp *intel_dp, bool *perform_full_detect)
 {
 	struct drm_device *dev = intel_dp_to_dev(intel_dp);
 	struct intel_encoder *intel_encoder = &dp_to_dig_port(intel_dp)->base;
 	u8 sink_irq_vector;
 	u8 link_status[DP_LINK_STATUS_SIZE];
+	u8 old_sink_count = intel_dp->sink_count;
+	bool ret;
+
+	*perform_full_detect = false;
 
 	WARN_ON(!drm_modeset_is_locked(&dev->mode_config.connection_mutex));
 
 	/* Try to read receiver status if the link appears to be up */
 	if (!intel_dp_get_link_status(intel_dp, link_status)) {
+		*perform_full_detect = true;
 		return;
 	}
 
-	/* Now read the DPCD to see if it's actually running */
-	if (!intel_dp_get_dpcd(intel_dp)) {
+	/* Now read the DPCD to see if it's actually running
+	 * Don't return immediately if dpcd read failed,
+	 * if sink count was 1 and dpcd read failed we need
+	 * to do full detection
+	 */
+	ret = intel_dp_get_dpcd(intel_dp);
+
+	if ((old_sink_count != intel_dp->sink_count) || !ret) {
+		*perform_full_detect = true;
+
+		/* No need to proceed if we are going to do full detect */
 		return;
 	}
 
@@ -4788,7 +4802,7 @@ intel_dp_power_put(struct intel_dp *dp,
 }
 
 static void
-intel_dp_sst_hpd_pulse(struct drm_connector *connector)
+intel_dp_sst_hpd_pulse(struct drm_connector *connector, bool check_link_status)
 {
 	struct intel_dp *intel_dp = intel_attached_dp(connector);
 	struct intel_digital_port *intel_dig_port = dp_to_dig_port(intel_dp);
@@ -4798,6 +4812,7 @@ intel_dp_sst_hpd_pulse(struct drm_connector *connector)
 	enum intel_display_power_domain power_domain;
 	bool ret;
 	u8 sink_irq_vector;
+	bool full_detect;
 
 
 	power_domain = intel_dp_power_get(intel_dp);
@@ -4824,7 +4839,8 @@ intel_dp_sst_hpd_pulse(struct drm_connector *connector)
 			intel_encoder->type = INTEL_OUTPUT_DISPLAYPORT;
 		status = connector_status_disconnected;
 		goto out;
-	} else if (connector->status == connector_status_connected) {
+	} else if (connector->status == connector_status_connected &&
+			check_link_status == true) {
 
 		/*
 		 * if display was connected already and is still connected
@@ -4832,9 +4848,10 @@ intel_dp_sst_hpd_pulse(struct drm_connector *connector)
 		 * link loss triggerring long pulse!!!!
 		 */
 		drm_modeset_lock(&dev->mode_config.connection_mutex, NULL);
-		intel_dp_check_link_status(intel_dp);
+		intel_dp_check_link_status(intel_dp, &full_detect);
 		drm_modeset_unlock(&dev->mode_config.connection_mutex);
-		goto out;
+		if (!full_detect)
+			goto out;
 	}
 
 	intel_dp_set_edid(intel_dp);
@@ -4881,7 +4898,7 @@ intel_dp_detect(struct drm_connector *connector, bool force)
 	}
 
 	if (force)
-		intel_dp_sst_hpd_pulse(intel_dp->attached_connector);
+		intel_dp_sst_hpd_pulse(intel_dp->attached_connector, true);
 
 	if (intel_connector->detect_edid)
 		return connector_status_connected;
@@ -5184,6 +5201,7 @@ intel_dp_hpd_pulse(struct intel_digital_port *intel_dig_port, bool long_hpd)
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	enum intel_display_power_domain power_domain;
 	enum irqreturn ret = IRQ_NONE;
+	bool full_detect;
 
 	if (intel_dig_port->base.type != INTEL_OUTPUT_EDP)
 		intel_dig_port->base.type = INTEL_OUTPUT_DISPLAYPORT;
@@ -5211,7 +5229,7 @@ intel_dp_hpd_pulse(struct intel_digital_port *intel_dig_port, bool long_hpd)
 		/* indicate that we need to restart link training */
 		intel_dp->train_set_valid = false;
 
-		intel_dp_sst_hpd_pulse(intel_dp->attached_connector);
+		intel_dp_sst_hpd_pulse(intel_dp->attached_connector, true);
 		goto put_power;
 
 	} else {
@@ -5222,8 +5240,16 @@ intel_dp_hpd_pulse(struct intel_digital_port *intel_dig_port, bool long_hpd)
 
 		if (!intel_dp->is_mst) {
 			drm_modeset_lock(&dev->mode_config.connection_mutex, NULL);
-			intel_dp_check_link_status(intel_dp);
+			intel_dp_check_link_status(intel_dp, &full_detect);
 			drm_modeset_unlock(&dev->mode_config.connection_mutex);
+			if (full_detect) {
+				/*
+				 * Assigning check_link_status to false in order to avoid
+				 * checking link status again before performing full detect.
+				 */
+				intel_dp_sst_hpd_pulse(intel_dp->attached_connector, false);
+				goto put_power;
+			}
 		}
 	}
 
