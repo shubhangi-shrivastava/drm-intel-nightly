@@ -4465,12 +4465,6 @@ intel_dp_short_pulse(struct intel_dp *intel_dp)
 
 	WARN_ON(!drm_modeset_is_locked(&dev->mode_config.connection_mutex));
 
-	if (!intel_encoder->base.crtc)
-		return;
-
-	if (!to_intel_crtc(intel_encoder->base.crtc)->active)
-		return;
-
 	/* Try to read receiver status if the link appears to be up */
 	if (!intel_dp_get_link_status(intel_dp, link_status)) {
 		return;
@@ -4480,6 +4474,12 @@ intel_dp_short_pulse(struct intel_dp *intel_dp)
 	if (!intel_dp_get_dpcd(intel_dp)) {
 		return;
 	}
+
+	if (!intel_encoder->base.crtc)
+		return;
+
+	if (!to_intel_crtc(intel_encoder->base.crtc)->active)
+		return;
 
 	/* Try to read the source of the interrupt */
 	if (intel_dp->dpcd[DP_DPCD_REV] >= 0x11 &&
