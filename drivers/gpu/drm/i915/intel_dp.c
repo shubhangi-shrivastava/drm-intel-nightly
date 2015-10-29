@@ -4462,20 +4462,34 @@ intel_dp_check_link_status(struct intel_dp *intel_dp)
  *  4. Check link status on receipt of hot-plug interrupt
  */
 static void
-intel_dp_short_pulse(struct intel_dp *intel_dp)
+intel_dp_short_pulse(struct intel_dp *intel_dp, bool *perform_full_detect)
 {
 	struct drm_device *dev = intel_dp_to_dev(intel_dp);
 	struct intel_encoder *intel_encoder = &dp_to_dig_port(intel_dp)->base;
 	u8 sink_irq_vector;
 	u8 link_status[DP_LINK_STATUS_SIZE];
+	u8 old_sink_count = intel_dp->sink_count;
+	bool ret;
+
+	*perform_full_detect = false;
 
 	/* Try to read receiver status if the link appears to be up */
 	if (!intel_dp_get_link_status(intel_dp, link_status)) {
+		*perform_full_detect = true;
 		return;
 	}
 
-	/* Now read the DPCD to see if it's actually running */
-	if (!intel_dp_get_dpcd(intel_dp)) {
+	/* Now read the DPCD to see if it's actually running
+	 * Don't return immediately if dpcd read failed,
+	 * if sink count was 1 and dpcd read failed we need
+	 * to do full detection
+	 */
+	ret = intel_dp_get_dpcd(intel_dp);
+
+	if ((old_sink_count != intel_dp->sink_count) || !ret) {
+		*perform_full_detect = true;
+
+		/* No need to proceed if we are going to do full detect */
 		return;
 	}
 
@@ -5202,6 +5216,7 @@ intel_dp_hpd_pulse(struct intel_digital_port *intel_dig_port, bool long_hpd)
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	enum intel_display_power_domain power_domain;
 	enum irqreturn ret = IRQ_NONE;
+	bool full_detect;
 
 	if (intel_dig_port->base.type != INTEL_OUTPUT_EDP)
 		intel_dig_port->base.type = INTEL_OUTPUT_DISPLAYPORT;
@@ -5239,8 +5254,11 @@ intel_dp_hpd_pulse(struct intel_digital_port *intel_dig_port, bool long_hpd)
 		}
 
 		if (!intel_dp->is_mst) {
-			intel_dp_short_pulse(intel_dp);
-			goto put_power;
+			intel_dp_short_pulse(intel_dp, &full_detect);
+			if (full_detect) {
+				intel_dp_long_pulse(intel_dp->attached_connector);
+				goto put_power;
+			}
 		}
 	}
 
