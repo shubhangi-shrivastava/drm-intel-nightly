@@ -4816,6 +4816,16 @@ intel_dp_long_pulse(struct intel_connector *intel_connector)
 	ret = intel_dp_probe_mst(intel_dp);
 	if (ret) {
 		goto out;
+	} else if (connector->status == connector_status_connected) {
+		/*
+		 * If display was connected already and is still connected
+		 * check links status, there has been known issues of
+		 * link loss triggerring long pulse!!!!
+		 */
+		drm_modeset_lock(&dev->mode_config.connection_mutex, NULL);
+		intel_dp_check_link_status(intel_dp);
+		drm_modeset_unlock(&dev->mode_config.connection_mutex);
+		goto out;
 	}
 
 	intel_dp_set_edid(intel_dp);
@@ -4839,8 +4849,17 @@ intel_dp_long_pulse(struct intel_connector *intel_connector)
 	}
 
 out:
-	if (status != connector_status_connected)
+	if (status != connector_status_connected) {
 		intel_dp_unset_edid(intel_dp);
+		/* if we were in MST mode, and device is not there get out of MST mode */
+		if (intel_dp->is_mst) {
+			DRM_DEBUG_KMS("MST device may have disappeared %d vs %d\n",
+					intel_dp->is_mst, intel_dp->mst_mgr.mst_state);
+			intel_dp->is_mst = false;
+			drm_dp_mst_topology_mgr_set_mst(&intel_dp->mst_mgr, intel_dp->is_mst);
+		}
+	}
+
 	intel_dp_power_put(intel_dp, power_domain);
 	return;
 }
@@ -4863,7 +4882,8 @@ intel_dp_detect(struct drm_connector *connector, bool force)
 		return connector_status_disconnected;
 	}
 
-	intel_dp_long_pulse(intel_dp->attached_connector);
+	if (force)
+		intel_dp_long_pulse(intel_dp->attached_connector);
 
 	if (intel_connector->detect_edid)
 		return connector_status_connected;
@@ -5193,25 +5213,23 @@ intel_dp_hpd_pulse(struct intel_digital_port *intel_dig_port, bool long_hpd)
 		/* indicate that we need to restart link training */
 		intel_dp->train_set_valid = false;
 
-		if (!intel_digital_port_connected(dev_priv, intel_dig_port))
-			goto mst_fail;
+		intel_dp_long_pulse(intel_dp->attached_connector);
+		if (intel_dp->is_mst)
+			ret = IRQ_HANDLED;
+		goto put_power;
 
-		if (!intel_dp_get_dpcd(intel_dp)) {
-			goto mst_fail;
-		}
-
-		intel_dp_probe_oui(intel_dp);
-
-		if (!intel_dp_probe_mst(intel_dp)) {
-			drm_modeset_lock(&dev->mode_config.connection_mutex, NULL);
-			intel_dp_check_link_status(intel_dp);
-			drm_modeset_unlock(&dev->mode_config.connection_mutex);
-			goto mst_fail;
-		}
 	} else {
 		if (intel_dp->is_mst) {
-			if (intel_dp_check_mst_status(intel_dp) == -EINVAL)
-				goto mst_fail;
+			if (intel_dp_check_mst_status(intel_dp) == -EINVAL) {
+				/* if we were in MST mode, and device is not there get out of MST mode */
+				if (intel_dp->is_mst) {
+					DRM_DEBUG_KMS("MST device may have disappeared %d vs %d\n",
+							intel_dp->is_mst, intel_dp->mst_mgr.mst_state);
+					intel_dp->is_mst = false;
+					drm_dp_mst_topology_mgr_set_mst(&intel_dp->mst_mgr, intel_dp->is_mst);
+					goto put_power;
+				}
+			}
 		}
 
 		if (!intel_dp->is_mst) {
@@ -5223,14 +5241,6 @@ intel_dp_hpd_pulse(struct intel_digital_port *intel_dig_port, bool long_hpd)
 
 	ret = IRQ_HANDLED;
 
-	goto put_power;
-mst_fail:
-	/* if we were in MST mode, and device is not there get out of MST mode */
-	if (intel_dp->is_mst) {
-		DRM_DEBUG_KMS("MST device may have disappeared %d vs %d\n", intel_dp->is_mst, intel_dp->mst_mgr.mst_state);
-		intel_dp->is_mst = false;
-		drm_dp_mst_topology_mgr_set_mst(&intel_dp->mst_mgr, intel_dp->is_mst);
-	}
 put_power:
 	intel_display_power_put(dev_priv, power_domain);
 
